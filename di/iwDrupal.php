@@ -2,7 +2,6 @@
 /**
  * iwDrupal.php
  * 
- * @version 0.0.10 - 2011-10-10
  * Drupal Integration to MediaWiki. MediaWiki is a master for user accounts and logging in.
  *
  * @author Anton Naumenko 2009-2011
@@ -93,30 +92,29 @@ class IwDrupal {
 		if ($iwParameters['iwDebug']) error_log("in addUserToGroupsInDrupal - user = ".$user->getName());
         if (!$add)//no groups to process
             return false;
-        $link = mysql_connect($iwParameters['DrupalDBserver'], $iwParameters['DrupalDBuser'],
-            $iwParameters['DrupalDBpassword']);
-        mysql_select_db($iwParameters['DrupalDBname'], $link) or die("cannot select db");
+        $link = mysqli_connect($iwParameters['DrupalDBserver'], $iwParameters['DrupalDBuser'],
+            $iwParameters['DrupalDBpassword'], $iwParameters['DrupalDBname']) or die("cannot select db");
         //for each group in the array insert it as role into drupal and add user-to-role relation's record
         foreach ($add as $group_name) {
 			if ($iwParameters['iwDebug']) error_log("in addUserToGroupsInDrupal - group = ".$group_name);
         	// first try to insert user. User can be created in MW but not yet propogated to drupal
 			$query = "INSERT INTO " . $iwParameters['DrupalDBprefix'] .
                 "users (uid,wid,name,mail,status,created) values (" . (int)$user->getId() . ",'" .
-                (int)$user->getId() . "','" . mysql_real_escape_string($user->getName()) . "','" .
-                mysql_real_escape_string($user->getEmail()) . "',1," . time() . ")";
+                (int)$user->getId() . "','" . mysqli_real_escape_string($link, $user->getName()) . "','" .
+                mysqli_real_escape_string($link, $user->getEmail()) . "',1," . time() . ")";
 			if ($iwParameters['iwDebug']) error_log("in addUserToGroupsInDrupal - query to insert user if new = ".$query);
-            mysql_query($query, $link);
+            mysqli_query($link, $query);
             //second we insert group as role. It will not be inserted if exists in drupal.
 			$query = "INSERT into " . $iwParameters['DrupalDBprefix'] .
-                "role (name) values ('" . mysql_real_escape_string($group_name) . "')";
+                "role (name) values ('" . mysqli_real_escape_string($link, $group_name) . "')";
 			if ($iwParameters['iwDebug']) error_log("in addUserToGroupsInDrupal - query to insert role if new = ".$query);
-            mysql_query($query, $link);
+            mysqli_query($link, $query);
             //last insert user-to-group assignment to user-to-role relation on Drupal
 			$query = "INSERT into " . $iwParameters['DrupalDBprefix'] .
                 "users_roles (uid, rid) SELECT " . (int)$user->getId() .
-                ",rid from ".$iwParameters['DrupalDBprefix']."role r where r.name='" . mysql_real_escape_string($group_name) . "'";
+                ",rid from ".$iwParameters['DrupalDBprefix']."role r where r.name='" . mysqli_real_escape_string($link, $group_name) . "'";
 			if ($iwParameters['iwDebug']) error_log("in addUserToGroupsInDrupal - query to insert user2role assignment if new = ".$query);
-			mysql_query($query, $link);
+			mysqli_query($link, $query);
         }
         return true;
     }
@@ -131,18 +129,17 @@ class IwDrupal {
 		if ($iwParameters['iwDebug']) error_log("in removeUserToGroupsInDrupal - user = ".$user->getName());
         if (!$remove)//no groups to process
             return false;
-        $link = mysql_connect($iwParameters['DrupalDBserver'], $iwParameters['DrupalDBuser'],
-            $iwParameters['DrupalDBpassword']);
-        mysql_select_db($iwParameters['DrupalDBname'], $link) or die("cannot select db");
+        $link = mysqli_connect($iwParameters['DrupalDBserver'], $iwParameters['DrupalDBuser'],
+            $iwParameters['DrupalDBpassword'], $iwParameters['DrupalDBname']) or die("cannot select db");
         //for each group in the array remove user-to-role relation's record. We leave roles in Drupal untouched.
         foreach ($remove as $group_name) {
 			if ($iwParameters['iwDebug']) error_log("in addUserToGroupsInDrupal - group = ".$group_name);
 			$query = "delete from " . $iwParameters['DrupalDBprefix'] .
                 "users_roles where uid = " . (int)$user->getId() .
-                " and rid IN(SELECT rid from ".$iwParameters['DrupalDBprefix']."role r where r.name='" . mysql_real_escape_string($group_name) .
+                " and rid IN(SELECT rid from ".$iwParameters['DrupalDBprefix']."role r where r.name='" . mysqli_real_escape_string($link, $group_name) .
                 "')";
 			if ($iwParameters['iwDebug']) error_log("in removeUserToGroupsInDrupal - query to delete user2role assignment = ".$query);
-            mysql_query($query, $link);
+            mysqli_query($link, $query);
         }
         return true;
     }
@@ -162,7 +159,7 @@ class IwDrupal {
     static function userSetCookies($user, &$session, &$cookies) {
         //$user->setToken();
         //$user->saveSettings();
-        $cookies['Token'] = $user->mToken;
+        $cookies['Token'] = $user->getToken();
         return true;
     }
   /**
@@ -177,19 +174,17 @@ class IwDrupal {
     static function createForumContainer($name, $parent = 0) {
         global $iwParameters;
         //connect to Drupal db and add forum container
-        $link = mysql_connect($iwParameters['DrupalDBserver'], $iwParameters['DrupalDBuser'],
-            $iwParameters['DrupalDBpassword']);
-        mysql_select_db($iwParameters['DrupalDBname'], $link) or die("cannot select db");
-        mysql_query("insert into " . $iwParameters['DrupalDBprefix'] .
-            "term_data (vid,name) " . " select vid, '" . mysql_real_escape_string($name) .
-            "' from " . $iwParameters['DrupalDBprefix'] . "vocabulary where module='forum'",
-            $link);
-        $forum_id = mysql_insert_id($link);
+        $link = mysqli_connect($iwParameters['DrupalDBserver'], $iwParameters['DrupalDBuser'],
+            $iwParameters['DrupalDBpassword'], $iwParameters['DrupalDBname']) or die("cannot select db");
+        mysqli_query($link, "insert into " . $iwParameters['DrupalDBprefix'] .
+            "term_data (vid,name) " . " select vid, '" . mysqli_real_escape_string($link, $name) .
+            "' from " . $iwParameters['DrupalDBprefix'] . "vocabulary where module='forum'");
+        $forum_id = mysqli_insert_id($link);
         if ($forum_id)
         //add information about hierarchy 
-            mysql_query("insert into " . $iwParameters['DrupalDBprefix'] .
+            mysqli_query($link, "insert into " . $iwParameters['DrupalDBprefix'] .
                 "term_hierarchy (tid,parent) values ('" . (int)$forum_id . "','" . (int)$parent .
-                "') ", $link);
+                "') ");
         return $forum_id;
     }
   static function afterEmailConfirmation($user, &$timestamp) { 
@@ -210,10 +205,8 @@ class IwDrupal {
   static function updateUserEmail($email, $user_id){
      global $iwParameters;
    //connect to Drupal db and update email
-    $link = mysql_connect($iwParameters['DrupalDBserver'], $iwParameters['DrupalDBuser'], $iwParameters['DrupalDBpassword']);
-    mysql_select_db($iwParameters['DrupalDBname'], $link) or die("cannot select db");
-    mysql_query("update ".$iwParameters['DrupalDBprefix']."users set mail='".mysql_real_escape_string($email)."' where uid = ".(int)$user_id
-                ,$link);
+    $link = mysqli_connect($iwParameters['DrupalDBserver'], $iwParameters['DrupalDBuser'], $iwParameters['DrupalDBpassword'], $iwParameters['DrupalDBname']) or die("cannot select db");
+    mysqli_query($link, "update ".$iwParameters['DrupalDBprefix']."users set mail='".mysqli_real_escape_string($link, $email)."' where uid = ".(int)$user_id);
     return true;
   }  
 }
