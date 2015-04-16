@@ -63,19 +63,26 @@ function mwi_uninstall() {
 function iwTransferMwUsersToDrupal(){
   //connect to MW db and get info about the user
   $row = array();
-  $link = mysql_connect($GLOBALS['wgDBserver'], $GLOBALS['wgDBuser'], $GLOBALS['wgDBpassword']);
-  mysql_select_db($GLOBALS['wgDBname'], $link) or die("cannot select db");
-  $result = mysql_query("SELECT * FROM ".$GLOBALS['wgDBprefix']."user ",$link);
+  $link = mysqli_connect($GLOBALS['wgDBserver'], $GLOBALS['wgDBuser'], $GLOBALS['wgDBpassword'], $GLOBALS['wgDBname']) or die("cannot select db");
+  $result = mysqli_query($link, "SELECT * FROM " . $GLOBALS['wgDBprefix'] . "user ");
   if (!$result) return false;
-  if (mysql_num_rows($result) == 0) return false;
-  while ($row = mysql_fetch_assoc($result)){
+  if (mysqli_num_rows($result) == 0) return false;
+  while ($row = mysqli_fetch_assoc($result)){
     $user_mail = $row['user_email'];
     $user_name = $row['user_name'];
     $user_number = $row['user_id'];
-    db_query("REPLACE INTO {users} (uid,wid,name,mail,status,created) VALUES (%d,'%s','%s','%s',1,%d)",$user_number,$user_number,$user_name,$user_mail,time());
+    db_query("REPLACE INTO {users} (uid,wid,name,mail,status,created) VALUES (:uid,:wid,:name,:mail,:status,:created)",
+        array(':uid' => $user_number,
+              ':wid' => $user_number,
+              ':name' => $user_name,
+              ':mail' => $user_mail,
+              ':status' => '1',
+              ':created' => time()
+        )
+    );
   }
-  mysql_free_result($result);
-  //mysql_close($link);
+  mysqli_free_result($result);
+  //mysqli_close($link);
   return true;
 }
 /**
@@ -85,17 +92,16 @@ function iwTransferMwUsersToDrupal(){
 function iwTransferMwGroupsToDrupal(){
   //connect to MW db and get info about the user
   $row = array();
-  $link = mysql_connect($GLOBALS['wgDBserver'], $GLOBALS['wgDBuser'], $GLOBALS['wgDBpassword']);
-  mysql_select_db($GLOBALS['wgDBname'], $link) or die("cannot select db");
-  $result = mysql_query("SELECT distinct ug_group FROM ".$GLOBALS['wgDBprefix']."user_groups ",$link);
+  $link = mysqli_connect($GLOBALS['wgDBserver'], $GLOBALS['wgDBuser'], $GLOBALS['wgDBpassword'], $GLOBALS['wgDBname']) or die("cannot select db");
+  $result = mysqli_query($link, "SELECT distinct ug_group FROM " . $GLOBALS['wgDBprefix'] . "user_groups ");
   if (!$result) return false;
-  if (mysql_num_rows($result) == 0) return false;
-  while ($row = mysql_fetch_assoc($result)){
+  if (mysqli_num_rows($result) == 0) return false;
+  while ($row = mysqli_fetch_assoc($result)){
     $group_name = $row['ug_group'];
-    db_query("INSERT INTO {role} (name) VALUES ('%s')",$group_name);
+    db_query("INSERT INTO {role} (name) VALUES (:groupname)", array(':groupname' => $group_name) );
   }
-  mysql_free_result($result);
-  //mysql_close($link);
+  mysqli_free_result($result);
+  //mysqli_close($link);
   return true;
 }
 /**
@@ -104,17 +110,16 @@ function iwTransferMwGroupsToDrupal(){
 function iwTransferMwUsers2GroupsToDrupal(){
   //connect to MW db and get info about the user
   $row = array();
-  $link = mysql_connect($GLOBALS['wgDBserver'], $GLOBALS['wgDBuser'], $GLOBALS['wgDBpassword']);
-  mysql_select_db($GLOBALS['wgDBname'], $link) or die("cannot select db");
-  $result = mysql_query("SELECT ug_user, ug_group FROM ".$GLOBALS['wgDBprefix']."user_groups ",$link);
+  $link = mysqli_connect($GLOBALS['wgDBserver'], $GLOBALS['wgDBuser'], $GLOBALS['wgDBpassword'], $GLOBALS['wgDBname']) or die("cannot select db");
+  $result = mysqli_query($link, "SELECT ug_user, ug_group FROM ".$GLOBALS['wgDBprefix']."user_groups ");
   if (!$result) return false;
-  if (mysql_num_rows($result) == 0) return false;
-  while ($row = mysql_fetch_assoc($result)){
+  if (mysqli_num_rows($result) == 0) return false;
+  while ($row = mysqli_fetch_assoc($result)){
     $group_name = $row['ug_group'];
     $user_id = $row['ug_user'];
-    db_query("INSERT INTO {users_roles} (uid, rid) SELECT %d,rid from {role} r where r.name='%s' ",$user_id,$group_name);
+    db_query("INSERT INTO {users_roles} (uid, rid) SELECT :userid,rid from {role} r where r.name=:groupname ", array(':userid' => $user_id, ':groupname' => $group_name));
   }
-  mysql_free_result($result);
-  //mysql_close($link);
+  mysqli_free_result($result);
+  //mysqli_close($link);
   return true;
 }
