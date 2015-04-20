@@ -57,21 +57,14 @@ function mwi_init() {
     global $user;
     //if in debug mode, let us see the content of session and cookies
     if ($GLOBALS['iwDebug']) {
-        if ($GLOBALS['iwDebug'])
-            error_log("session id = " . session_id());
-        if ($GLOBALS['iwDebug'])
-            error_log("cookie wid = " . $_COOKIE[$GLOBALS['wgCookiePrefix'] . "UserID"]);
-        if ($GLOBALS['iwDebug'])
-            error_log("session wid = " . $_SESSION['wsUserID']);
-        if ($GLOBALS['iwDebug'])
-            error_log("cookie wname = " . $_COOKIE[$GLOBALS['wgCookiePrefix'] . "UserName"]);
-        if ($GLOBALS['iwDebug'])
-            error_log("session wname = " . $_SESSION['wsUserName']);
-        if ($GLOBALS['iwDebug'])
-            error_log("cookie wtoken = " . $_COOKIE[$GLOBALS['wgCookiePrefix'] .
-                "Token"]);
-        if ($GLOBALS['iwDebug'])
-            error_log("session wtoken = " . $_SESSION['wsToken']);
+        if(!isset($_SESSION)) session_start();
+        error_log("session id = " . session_id());
+        error_log("cookie wid = " . $_COOKIE[$GLOBALS['wgCookiePrefix'] . "UserID"]);
+        if(array_key_exists('wsUserID', $_SESSION)) $error_log("session wid = " . $_SESSION['wsUserID']);
+        error_log("cookie wname = " . $_COOKIE[$GLOBALS['wgCookiePrefix'] . "UserName"]);
+        if(array_key_exists('wsUserName', $_SESSION)) error_log("session wname = " . $_SESSION['wsUserName']);
+        error_log("cookie wtoken = " . $_COOKIE[$GLOBALS['wgCookiePrefix'] . "Token"]);
+        if(array_key_exists('wsToken', $_SESSION)) error_log("session wtoken = " . $_SESSION['wsToken']);
     }
 
     // Get mw user id from MediaWiki session or cookie.
@@ -136,13 +129,20 @@ function mwi_init() {
     // Uncomment if you want to show the message of succesful SSO.
     // drupal_set_message(t('Authenticated via MediaWiki.  Welcome %name.', array('%name' => check_plain($user_name))));
     drupal_load('module', 'user');
-    $user = user_load($user_number);
-    $form_state['uid'] = $user->uid;
-    user_login_submit('mwi_login', $form_state);
-    if ($user->uid > 0) {
-        return;
+
+    // Currently logged in user:
+    global $user;
+    // User we should log in:
+    $mw_user = user_load($user_number);
+    // Only login user if he's not logged in already.
+    if($mw_user->uid != $user->uid) {
+        $form_state['uid'] = $mw_user->uid;
+        user_login_submit('mwi_login', $form_state);
+        if ($mw_user->uid > 0) {
+            return;
+        }
+        drupal_goto(drupal_get_destination());
     }
-    drupal_goto(substr(drupal_get_destination(), 12));
 }
 /**
  * iwGetMwUserIdFromSession() gets user's id from session or cookie.
