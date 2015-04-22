@@ -59,11 +59,11 @@ function mwi_init() {
     if ($GLOBALS['iwDebug']) {
         if(!isset($_SESSION)) session_start();
         error_log("session id = " . session_id());
-        error_log("cookie wid = " . $_COOKIE[$GLOBALS['wgCookiePrefix'] . "UserID"]);
+        if(array_key_exists($GLOBALS['wgCookiePrefix'] . "UserID", $_COOKIE)) error_log("cookie wid = " . $_COOKIE[$GLOBALS['wgCookiePrefix'] . "UserID"]);
         if(array_key_exists('wsUserID', $_SESSION)) $error_log("session wid = " . $_SESSION['wsUserID']);
-        error_log("cookie wname = " . $_COOKIE[$GLOBALS['wgCookiePrefix'] . "UserName"]);
+        if(array_key_exists($GLOBALS['wgCookiePrefix'] . "UserName", $_COOKIE)) error_log("cookie wname = " . $_COOKIE[$GLOBALS['wgCookiePrefix'] . "UserName"]);
         if(array_key_exists('wsUserName', $_SESSION)) error_log("session wname = " . $_SESSION['wsUserName']);
-        error_log("cookie wtoken = " . $_COOKIE[$GLOBALS['wgCookiePrefix'] . "Token"]);
+        if(array_key_exists($GLOBALS['wgCookiePrefix'] . "Token", $_COOKIE)) error_log("cookie wtoken = " . $_COOKIE[$GLOBALS['wgCookiePrefix'] . "Token"]);
         if(array_key_exists('wsToken', $_SESSION)) error_log("session wtoken = " . $_SESSION['wsToken']);
     }
 
