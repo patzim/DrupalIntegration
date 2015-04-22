@@ -105,7 +105,7 @@ function mwi_init() {
 
     $result = db_query('SELECT u.uid,u.name FROM {users} u WHERE u.wid = :wid',array(':wid' => $user_tid))->fetchObject();
     // User doesn't exist in Drupal database.  Get user info from MediaWiki record and add user to Drupal database.
-    if (!$result->uid) {
+    if (!$result) {
         $user_mail = $row['user_email'];
         $user_name = $row['user_name'];
         $user_number = $row['user_id'];
