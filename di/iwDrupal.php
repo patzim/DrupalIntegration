@@ -133,7 +133,7 @@ class IwDrupal {
             $iwParameters['DrupalDBpassword'], $iwParameters['DrupalDBname']) or die("cannot select db");
         //for each group in the array remove user-to-role relation's record. We leave roles in Drupal untouched.
         foreach ($remove as $group_name) {
-			if ($iwParameters['iwDebug']) error_log("in addUserToGroupsInDrupal - group = ".$group_name);
+			if ($iwParameters['iwDebug']) error_log("in removeUserToGroupsInDrupal - group = ".$group_name);
 			$query = "delete from " . $iwParameters['DrupalDBprefix'] .
                 "users_roles where uid = " . (int)$user->getId() .
                 " and rid IN(SELECT rid from ".$iwParameters['DrupalDBprefix']."role r where r.name='" . mysqli_real_escape_string($link, $group_name) .

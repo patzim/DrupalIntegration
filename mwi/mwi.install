@@ -26,25 +26,25 @@ function mwi_schema() {
  * @todo supress known warnings or make checks of existence.
  */
 function mwi_install() {
-  //transfer MW and VOP groups to drupal roles and map user-to-group relations
+  // Transfer MW groups to drupal roles and map user-to-group relations.
   if ($GLOBALS['iwDebug']) error_log("installing");
   if (iwTransferMwUsersToDrupal()){
-    if ($GLOBALS['iwDebug']) error_log("users Transferd");
+    if ($GLOBALS['iwDebug']) error_log("users transferred");
   } else {
-    if ($GLOBALS['iwDebug']) error_log("users were not Transferd");
+    if ($GLOBALS['iwDebug']) error_log("users were not transferred");
     return;
   }
   //native wiki groups
   if (iwTransferMwGroupsToDrupal()){
-    if ($GLOBALS['iwDebug']) error_log("groups to roles Transferd");
+    if ($GLOBALS['iwDebug']) error_log("groups to roles transferred");
   } else {
-    if ($GLOBALS['iwDebug']) error_log("groups to roles were not Transferd");
+    if ($GLOBALS['iwDebug']) error_log("groups to roles were not transferred");
     return;
   }
   if (iwTransferMwUsers2GroupsToDrupal()){
-    if ($GLOBALS['iwDebug']) error_log("user2groups to users2roles Transferd");
+    if ($GLOBALS['iwDebug']) error_log("user2groups to users2roles transferred");
   } else {
-    if ($GLOBALS['iwDebug']) error_log("user2groups to users2roles were not Transferd");
+    if ($GLOBALS['iwDebug']) error_log("user2groups to users2roles were not transferred");
     return;
   }
 }
