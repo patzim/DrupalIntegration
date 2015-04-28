@@ -87,7 +87,7 @@ function iwTransferMwUsersToDrupal(){
 }
 /**
  * iwTransferMwGroupsToDrupal() gets all groups from MediaWiki and inserts them into Drupal.
- * @todo trnasfer of wiki groups that are not assigned to users but in deined in config files
+ * @todo transfer of wiki groups that are not assigned to users but in deined in config files
  */
 function iwTransferMwGroupsToDrupal(){
   //connect to MW db and get info about the user
@@ -98,7 +98,10 @@ function iwTransferMwGroupsToDrupal(){
   if (mysqli_num_rows($result) == 0) return false;
   while ($row = mysqli_fetch_assoc($result)){
     $group_name = $row['ug_group'];
-    db_query("INSERT INTO {role} (name) VALUES (:groupname)", array(':groupname' => $group_name) );
+    $entry_exists = db_query("SELECT * FROM {role} WHERE name=:groupname", array(':groupname' => $group_name) )->fetchField();
+    if(!$entry_exists) {
+        db_query("INSERT INTO {role} (name) VALUES (:groupname)", array(':groupname' => $group_name) );
+    }
   }
   mysqli_free_result($result);
   //mysqli_close($link);
@@ -111,13 +114,16 @@ function iwTransferMwUsers2GroupsToDrupal(){
   //connect to MW db and get info about the user
   $row = array();
   $link = mysqli_connect($GLOBALS['wgDBserver'], $GLOBALS['wgDBuser'], $GLOBALS['wgDBpassword'], $GLOBALS['wgDBname']) or die("cannot select db");
-  $result = mysqli_query($link, "SELECT ug_user, ug_group FROM ".$GLOBALS['wgDBprefix']."user_groups ");
+  $result = mysqli_query($link, "SELECT user_name, ug_group FROM ".$GLOBALS['wgDBprefix']."user_groups ug JOIN ".$GLOBALS['wgDBprefix']."user u on ug.ug_user = u.user_id");
   if (!$result) return false;
   if (mysqli_num_rows($result) == 0) return false;
   while ($row = mysqli_fetch_assoc($result)){
     $group_name = $row['ug_group'];
-    $user_id = $row['ug_user'];
-    db_query("INSERT INTO {users_roles} (uid, rid) SELECT :userid,rid from {role} r where r.name=:groupname ", array(':userid' => $user_id, ':groupname' => $group_name));
+    $user_name = $row['user_name'];
+    $entry_exists = db_query("SELECT * FROM {users_roles} ur JOIN {role} r on ur.rid=r.rid JOIN {users} as u on ur.uid=u.uid WHERE u.name=:username AND r.name=:groupname", array(':username' => $user_name, ':groupname' => $group_name))->fetchField();
+    if(!$entry_exists) {
+        db_query("INSERT INTO {users_roles} (uid, rid) SELECT uid,rid from {users} u, {role} r where u.name=:username AND r.name=:groupname ", array(':username' => $user_name, ':groupname' => $group_name));
+    }
   }
   mysqli_free_result($result);
   //mysqli_close($link);
