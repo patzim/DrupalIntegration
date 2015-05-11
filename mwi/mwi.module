@@ -54,7 +54,6 @@ function mwi_help($path, $arg) {
  * @see http://drupal.org/node/111768 for the sample
  */
 function mwi_init() {
-    global $user;
     //if in debug mode, let us see the content of session and cookies
     if ($GLOBALS['iwDebug']) {
         if(!isset($_SESSION)) session_start();
@@ -101,39 +100,33 @@ function mwi_init() {
     // This means we have to automatically log in user into Drupal.
     require_once './includes/common.inc';
     require_once './includes/theme.inc';
-
+    drupal_load('module', 'user');
 
     $result = db_query('SELECT u.uid,u.name FROM {users} u WHERE u.wid = :wid',array(':wid' => $user_tid))->fetchObject();
-    // User doesn't exist in Drupal database.  Get user info from MediaWiki record and add user to Drupal database.
     if (!$result) {
-        $user_mail = $row['user_email'];
-        $user_name = $row['user_name'];
-        $user_number = $row['user_id'];
-        // Use replace instead of insert to avoid errors in the event the uid has been added ahead of time, such as in the case of the administrators...
-        db_query("REPLACE INTO {users} (uid,wid,name,mail,status,created) VALUES (:uid,:wid,:name,:mail,:status,:created)",
-            array(':uid' => $user_number,
-                  ':wid' => $user_tid,
-                  ':name' => $user_name,
-                  ':mail' => $user_mail,
-                  ':status' => '1',
-                  ':created' => time()
-            )
+        // User doesn't exist in Drupal database.  Get user info from MediaWiki record and add user to Drupal database.
+        $mw_id   = $row['user_id'];
+        $mw_mail = $row['user_email'];
+        $mw_name = $row['user_name'];
+        $newUser = array(
+            'name'   => $mw_name,
+            'mail'   => $mw_mail,
+            'status' => 1
         );
+        $mw_user = user_save(null, $newUser);
+        // Set WID, this is done in a separate step, because wid can't be set using the user class interface as far as I know.
+        db_query("UPDATE {users} SET wid=:wid WHERE uid=:uid", array(':wid' => $mw_id, ':uid' => $mw_user->uid) );
     }
     else {
         // User exists in Drupal database.  Set user info from there.
-        $user_name = $result->name;
-        $user_number = $result->uid;
+        $mw_user = user_load($result->uid);
     }
     // Log in, updating logs and redirecting to where the user requested, or home. Good stuff stolen from persistent login module.
     // Uncomment if you want to show the message of succesful SSO.
     // drupal_set_message(t('Authenticated via MediaWiki.  Welcome %name.', array('%name' => check_plain($user_name))));
-    drupal_load('module', 'user');
 
     // Currently logged in user:
     global $user;
-    // User we should log in:
-    $mw_user = user_load($user_number);
     // Only login user if he's not logged in already.
     if($mw_user->uid != $user->uid) {
         $form_state['uid'] = $mw_user->uid;
